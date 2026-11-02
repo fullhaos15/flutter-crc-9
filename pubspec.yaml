@@ -1,0 +1,41 @@
+name: post_explorer
+description: Post Explorer — SRS 8/9 (Dio, Retrofit, json_serializable, Bloc, кэш, иконка, тесты).
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  dio: ^5.7.0
+  retrofit: ^4.4.1
+  json_annotation: ^4.9.0
+  flutter_bloc: ^8.1.6
+  equatable: ^2.0.5
+  shared_preferences: ^2.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  build_runner: ^2.4.13
+  json_serializable: ^6.8.0
+  retrofit_generator: ^9.1.5
+  http_mock_adapter: ^0.6.1
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  uses-material-design: true
+
+# Генерация иконки: dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 21
+  remove_alpha_ios: true
+  # Adaptive Icon (Android 8+): фон + передний план в «безопасной зоне»
+  adaptive_icon_background: "#3F51B5"
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
