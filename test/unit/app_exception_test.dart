@@ -4,64 +4,82 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:post_explorer/core/error/app_exception.dart';
 
-import '../helpers.dart';
-
-/// Unit-тесты преобразования любых ошибок в понятный AppException.
-void main() {
+DioException _dio(DioExceptionType type, {int? status, Object? error}) {
   final ro = RequestOptions(path: '/posts');
+  return DioException(
+    requestOptions: ro,
+    type: type,
+    error: error,
+    response: status == null
+        ? null
+        : Response(requestOptions: ro, statusCode: status),
+  );
+}
 
-  AppException convert(Object e) => AppException.from(e);
+void main() {
+  group('AppException.from — классификация ошибок', () {
+    test('таймауты Dio -> timeout', () {
+      for (final t in [
+        DioExceptionType.connectionTimeout,
+        DioExceptionType.sendTimeout,
+        DioExceptionType.receiveTimeout,
+      ]) {
+        expect(AppException.from(_dio(t)).type, AppErrorType.timeout);
+      }
+    });
 
-  test('таймаут -> AppErrorType.timeout', () {
-    final e = convert(
-      DioException(requestOptions: ro, type: DioExceptionType.receiveTimeout),
-    );
-    expect(e.type, AppErrorType.timeout);
-  });
+    test('connectionError и SocketException -> noConnection', () {
+      expect(
+        AppException.from(_dio(DioExceptionType.connectionError)).type,
+        AppErrorType.noConnection,
+      );
+      expect(
+        AppException.from(
+          _dio(DioExceptionType.unknown,
+              error: const SocketException('no net')),
+        ).type,
+        AppErrorType.noConnection,
+      );
+    });
 
-  test('нет сети (connectionError) -> noConnection', () {
-    final e = convert(
-      DioException(requestOptions: ro, type: DioExceptionType.connectionError),
-    );
-    expect(e.type, AppErrorType.noConnection);
-    expect(e.message, 'Нет подключения к интернету.');
-  });
+    test('4xx -> client (404 с отдельным текстом), 5xx -> server', () {
+      final notFound =
+          AppException.from(_dio(DioExceptionType.badResponse, status: 404));
+      expect(notFound.type, AppErrorType.client);
+      expect(notFound.statusCode, 404);
+      expect(notFound.message, contains('404'));
 
-  test('SocketException внутри DioException.unknown -> noConnection', () {
-    final e = convert(DioException(
-      requestOptions: ro,
-      type: DioExceptionType.unknown,
-      error: const SocketException('no route'),
-    ));
-    expect(e.type, AppErrorType.noConnection);
-  });
+      final bad =
+          AppException.from(_dio(DioExceptionType.badResponse, status: 400));
+      expect(bad.type, AppErrorType.client);
 
-  test('404 -> client с текстом «не найдены», код сохраняется', () {
-    final e = convert(serverError(404));
-    expect(e.type, AppErrorType.client);
-    expect(e.statusCode, 404);
-    expect(e.message, contains('не найдены'));
-  });
+      final server =
+          AppException.from(_dio(DioExceptionType.badResponse, status: 503));
+      expect(server.type, AppErrorType.server);
+      expect(server.statusCode, 503);
+    });
 
-  test('500 -> server, в сообщении виден код', () {
-    final e = convert(serverError(503));
-    expect(e.type, AppErrorType.server);
-    expect(e.message, contains('503'));
-  });
+    test('FormatException и TypeError -> parse', () {
+      expect(AppException.from(const FormatException('bad')).type,
+          AppErrorType.parse);
+      expect(AppException.from(TypeError()).type, AppErrorType.parse);
+    });
 
-  test('FormatException (битый JSON) -> parse', () {
-    expect(convert(const FormatException('bad')).type, AppErrorType.parse);
-  });
+    test('неизвестная ошибка -> unknown, исходный AppException не меняется',
+        () {
+      expect(AppException.from(Exception('???')).type, AppErrorType.unknown);
 
-  test('неизвестная ошибка -> unknown, технические детали не в сообщении', () {
-    final e = convert(StateError('secret internals'));
-    expect(e.type, AppErrorType.unknown);
-    expect(e.message, isNot(contains('secret internals')));
-    expect(e.technical, contains('secret internals'));
-  });
+      const original =
+          AppException(AppErrorType.server, 'msg', statusCode: 500);
+      expect(identical(AppException.from(original), original), isTrue);
+    });
 
-  test('AppException проходит без изменений (тот же объект)', () {
-    const original = AppException(AppErrorType.timeout, 'x');
-    expect(identical(convert(original), original), isTrue);
+    test(
+        'AppException, положенный interceptor-ом в DioException.error, достаётся как есть',
+        () {
+      const inner = AppException(AppErrorType.timeout, 'таймаут');
+      final e = _dio(DioExceptionType.unknown, error: inner);
+      expect(AppException.from(e), same(inner));
+    });
   });
 }

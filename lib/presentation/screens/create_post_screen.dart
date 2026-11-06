@@ -83,24 +83,30 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       else if (s.usersStatus == UsersStatus.error)
                         Row(
                           children: [
-                            Expanded(child: Text(s.error ?? 'Не удалось загрузить авторов')),
+                            Expanded(
+                                child: Text(
+                                    s.error ?? 'Не удалось загрузить авторов')),
                             TextButton(
-                              onPressed: context.read<CreatePostCubit>().loadUsers,
+                              onPressed:
+                                  context.read<CreatePostCubit>().loadUsers,
                               child: const Text('Повторить'),
                             ),
                           ],
                         )
                       else
                         DropdownButtonFormField<int>(
-                          value: _userId,
+                          initialValue: _userId,
                           decoration: const InputDecoration(
                             labelText: 'Автор',
                             border: OutlineInputBorder(),
                           ),
                           items: s.users
-                              .map((u) => DropdownMenuItem(value: u.id, child: Text(u.name)))
+                              .map((u) => DropdownMenuItem(
+                                  value: u.id, child: Text(u.name)))
                               .toList(),
-                          onChanged: submitting ? null : (v) => setState(() => _userId = v),
+                          onChanged: submitting
+                              ? null
+                              : (v) => setState(() => _userId = v),
                           validator: Validators.userId,
                         ),
                       const SizedBox(height: 16),
@@ -123,7 +129,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                               ? const SizedBox(
                                   width: 20,
                                   height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
                                 )
                               : const Text('Отправить'),
                         ),

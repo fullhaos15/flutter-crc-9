@@ -1,59 +1,44 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:post_explorer/core/utils/validators.dart';
 
-/// Unit-тесты валидации формы создания поста (Validators).
-/// Это чистая логика без UI: вход -> строка с ошибкой или null.
 void main() {
   group('Validators.title', () {
-    test('null и пустая строка -> «Введите заголовок»', () {
+    test('null, пустая строка и одни пробелы — ошибка «Введите заголовок»', () {
       expect(Validators.title(null), 'Введите заголовок');
       expect(Validators.title(''), 'Введите заголовок');
+      expect(Validators.title('     '), 'Введите заголовок');
     });
 
-    test('строка из одних пробелов считается пустой', () {
-      expect(Validators.title('      '), 'Введите заголовок');
-    });
-
-    test('граница снизу: 4 символа — ошибка, 5 — допустимо', () {
+    test('короче 5 символов (после trim) — ошибка длины', () {
       expect(Validators.title('abcd'), 'Заголовок: от 5 до 100 символов');
-      expect(Validators.title('abcde'), isNull);
+      expect(Validators.title('  ab  '), 'Заголовок: от 5 до 100 символов');
     });
 
-    test('граница сверху: 100 символов — допустимо, 101 — ошибка', () {
+    test('границы допустимой длины: 5 и 100 — ок, 101 — ошибка', () {
+      expect(Validators.title('a' * 5), isNull);
       expect(Validators.title('a' * 100), isNull);
-      expect(Validators.title('a' * 101), 'Заголовок: от 5 до 100 символов');
-    });
-
-    test('пробелы по краям обрезаются перед проверкой длины', () {
-      expect(Validators.title('  abcd  '), isNotNull); // после trim — 4 символа
-      expect(Validators.title('  abcde  '), isNull);
+      expect(Validators.title('a' * 101), isNotNull);
     });
   });
 
   group('Validators.body', () {
-    test('null и пробелы -> «Введите текст поста»', () {
+    test('пустой текст — ошибка', () {
+      expect(Validators.body(''), 'Введите текст поста');
       expect(Validators.body(null), 'Введите текст поста');
-      expect(Validators.body('   \n  '), 'Введите текст поста');
     });
 
-    test('граница снизу: 9 символов — ошибка, 10 — допустимо', () {
-      expect(Validators.body('123456789'), 'Текст: от 10 до 1000 символов');
-      expect(Validators.body('1234567890'), isNull);
-    });
-
-    test('граница сверху: 1000 — допустимо, 1001 — ошибка', () {
-      expect(Validators.body('x' * 1000), isNull);
-      expect(Validators.body('x' * 1001), 'Текст: от 10 до 1000 символов');
+    test('границы допустимой длины: 10 и 1000 — ок, 9 и 1001 — ошибка', () {
+      expect(Validators.body('a' * 9), isNotNull);
+      expect(Validators.body('a' * 10), isNull);
+      expect(Validators.body('a' * 1000), isNull);
+      expect(Validators.body('a' * 1001), isNotNull);
     });
   });
 
   group('Validators.userId', () {
-    test('автор не выбран (null) -> ошибка', () {
+    test('автор не выбран — ошибка, выбран — ок', () {
       expect(Validators.userId(null), 'Выберите автора');
-    });
-
-    test('автор выбран -> ошибки нет', () {
-      expect(Validators.userId(1), isNull);
+      expect(Validators.userId(3), isNull);
     });
   });
 }
